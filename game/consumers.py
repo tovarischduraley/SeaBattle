@@ -1,22 +1,24 @@
 import json
+import random
+
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from django.contrib.auth.models import User
-
 from chat.models import Message
-from game.models import Player
+from .utils import create_game_name, message_to_json, messages_to_json
+from .models import Player, Game, GameState
 
 
 class ChatConsumer(WebsocketConsumer):
 
     def fetch_messages(self, data):
-        print('fetching')
+        # print('fetching')
         messages = Message.objects.order_by('-timestamp').all()[:10]
         content = {
             'command': 'messages',
-            'messages': self.messages_to_json(reversed(messages))
+            'messages': messages_to_json(reversed(messages))
         }
-        print('fetched')
+        # print('fetched')
         self.send_message(content)
 
     def new_message(self, data):
@@ -28,69 +30,132 @@ class ChatConsumer(WebsocketConsumer):
 
         content = {
             'command': 'new_message',
-            'message': self.message_to_json(message)
+            'message': message_to_json(message)
         }
 
         return self.send_chat_message(content)
 
-    def messages_to_json(self, messages):
-        result = []
-        for message in messages:
-            result.append(self.message_to_json(message))
-        return result
+    # def wait_for_opponent(self):
+    #     pass
 
-    def message_to_json(self, message):
-        return {
-            'author': message.author.username,
-            'content': message.content,
-            'timestamp': str(message.timestamp),
-        }
+    def create_game(self, player1, player2):
+        game_name = str(create_game_name())
+        game = Game.objects.create(group_channel_name=game_name)
+        GameState.objects.create(
+            game=game,
+            whos_turn=random.choice([player1, player2]),
+            bf1_owner=player1,
+            bf2_owner=player2,
+            bf1=f'{game_name}_1',
+            bf2=f'{game_name}_2',
+        )
+        player1.game = game
+        player1.is_playing = True
+        player1.save()
 
-    def wait_for_opponent(self):
+        player2.game = game
+        player2.is_playing = True
+        player2.save()
+
+        return game.group_channel_name
+
+    def start_game(self):
+        pass
+
+    def load_game(self):
         pass
 
     commands = {
         'fetch_messages': fetch_messages,
         'new_message': new_message,
+        'start_game': start_game
     }
 
     def connect(self):
-        print('connecting')
+        # print('connecting')
         current_user = self.scope['user']
         if current_user.is_authenticated:
-            if Player.objects.filter(user=current_user).first():
-                pass
-            else:
-                Player.objects.create(
-
+            player = Player.objects.filter(user=current_user).first()
+            if not player:
+                player = Player.objects.create(
+                    user=current_user,
+                    is_online=True,
+                    channel_name=self.channel_name
                 )
-            # Online
+            if player.is_playing:
+                # reconnect to the game
+                async_to_sync(self.channel_layer.group_add)(
+                    player.game.group_channel_name,
+                    self.channel_name
+                )
+            else:
+                # search opponent or wait for opponent
+                opponent = Player.objects.filter(is_online=True, is_playing=False).exclude(user=player.user).first()
+                if opponent:
+
+                    group_channel_name = self.create_game(player, opponent)
+
+                    async_to_sync(self.channel_layer.group_add)(
+                        group_channel_name,
+                        [player.channel_name, opponent.channel_name]
+                    )
+
+                    # async_to_sync(self.channel_layer.group_add)(
+                    #     group_channel_name,
+                    #     opponent.channel_name
+                    # )
+
+                    async_to_sync(self.channel_layer.group_send)(
+                        group_channel_name,
+                        {
+                            "type": "send_message",
+                            "message": {
+                                'request_type': 'start_game',
+                                # ''GAME DATA
+                            }
+                        }
+                    )
+
+                else:
+                    # wait for opponent
+                    async_to_sync(self.channel_layer.send)(
+                        self.channel_name,
+                        {
+                            'type': 'send_message',
+                            'message': {
+                                'command': 'waiting_for_opponent',
+                            }
+                        }
+                    )
+
+            self.accept()
+            player.is_online = True
+            player.save()
+
+            # print('connected')
+            # Set Online
             # Прелоадер
             # Проверить на существование
             # Если есть то переподключать
-            #
-            # Player.objects.create(user=self.scope['user'], channel_name=self.channel_name)
-            async_to_sync(self.channel_layer.group_add)(
-                'game',
-                self.channel_name
-            )
-
-            self.accept()
-            print('connected')
 
     def disconnect(self, close_code):
-        # Online
-        async_to_sync(self.channel_layer.group_discard)(
-            'game',
-            self.channel_name
-        )
+        player = Player.objects.filter(user=self.scope['user']).first()
+        if player.game:
+            async_to_sync(self.channel_layer.group_discard)(
+                player.game.group_channel_name,
+                self.channel_name
+            )
+        else:
+            player.is_playing = False
+        player.is_online = False
+        player.save()
 
     def receive(self, text_data):
         data = json.loads(text_data)
-        print('receiving')
+        # print('receiving')
         for command in data['commands']:
             self.commands[command](self, data)
-        print('received')
+        # print('received')
 
     def send_chat_message(self, message):
         async_to_sync(self.channel_layer.group_send)(
@@ -102,14 +167,13 @@ class ChatConsumer(WebsocketConsumer):
         )
 
     def send_message(self, message):
-        print('sending message')
-        print(json.dumps(message))
+        # print('SEND_MESSAGE sending message')
         self.send(text_data=json.dumps(message))
-        print('message sent')
+        # print('SEND_MESSAGE message sent')
 
     def chat_message(self, event):
-        print('sending message')
+        # print('CHAT_MESSAGE sending message')
         message = event['message']
         print(message)
         self.send(text_data=json.dumps(message))
-        print('message sent')
+        # print('CHAT_MESSAGE message sent')

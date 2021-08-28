@@ -7,22 +7,32 @@ import pickle
 class Game(models.Model):
     group_channel_name = models.CharField(max_length=255)
 
+    def __str__(self):
+        return f'{self.state.bf1_owner} + {self.state.bf2_owner} game'
+
 
 class Player(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    is_playing = models.BooleanField()
-    is_online = models.BooleanField()
-    game_room = models.ForeignKey(Game, related_name='players', on_delete=models.SET_NULL, null=True)
+    is_playing = models.BooleanField(default=False)
+    is_online = models.BooleanField(default=False)
+    game = models.ForeignKey(Game, related_name='players', on_delete=models.SET_NULL, null=True, default=None,
+                             blank=True)
     channel_name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.user.username
 
 
 class GameState(models.Model):
-    state = models.OneToOneField(Game, related_name='game', on_delete=models.CASCADE)
+    game = models.OneToOneField(Game, related_name='state', on_delete=models.CASCADE)
     whos_turn = models.ForeignKey(Player, related_name='game_state', on_delete=models.CASCADE)
     bf1_owner = models.ForeignKey(Player, related_name='bf1_owner_game_state', on_delete=models.CASCADE)
     bf2_owner = models.ForeignKey(Player, related_name='bf2_owner_game_state', on_delete=models.CASCADE)
     bf1 = models.CharField(max_length=100)
     bf2 = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f'{self.bf1_owner} + {self.bf2_owner} game state'
 
 
 class Cell(Enum):
