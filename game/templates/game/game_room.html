@@ -5,19 +5,27 @@
     <meta charset="utf-8"/>
     <title>Chat Room</title>
     <link rel="stylesheet" href="{% static 'game/style.css' %}">
+    <!-- CSS only -->
+    {#    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet"#}
+    {#          integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">#}
 </head>
 <body>
-{#<textarea id="chat-log" cols="100" rows="20"></textarea><br>#}
-<div id="chat__area">
-</div>
-<br>
-<input id="chat-message-input" type="text" size="100">
-<br>
-<br>
-<input id="chat-message-submit" type="button" value="Send">
-{{ room_name|json_script:"room-name" }}
+<div class="container">
+    <div class="game__area">
+
+    </div>
+    <div class="chat">
+        <div id="chat__area">
+
+        </div>
+        <br>
+        <input id="chat-message-input" type="text">
+        <br>
+        <br>
+        <input id="ch</div>at-message-submit" class="btn btn-dark" type="button" value="Send">
+    </div>
+    {{ room_name|json_script:"room-name" }}
 <script>
-    const roomName = JSON.parse(document.getElementById('room-name').textContent);
 
     const ws = new WebSocket(
         'ws://'
@@ -33,30 +41,43 @@
     }
 
     ws.onmessage = function (e) {
-        console.log('onmessage')
-
-        const chatArea = document.getElementById("chat__area")
+        const chatArea = document.getElementById("chat__area");
+        const gameArea = document.getElementById("game");
         const data = JSON.parse(e.data);
 
-        if (data['command'] === 'messages') {
-            for (let i = 0; i < data['messages'].length; i++) {
-                {#document.querySelector('#chat-log').value += (data['messages'][i]['content'] + '\n');#}
-                chatArea.innerHTML += '<div class="chat__message">' +
-                    '<div class="message__author">' + data['messages'][i]['author'] + '</div>' +
-                    '<div class="message__content">' + data['messages'][i]['content'] + '</div>' +
-                    {#data['messages'][i]['timestamp'].format('') +#}
-                    '</div>';
-            }
+        switch (data['command']) {
+            case 'error':
+                alert(data['message']);
+                break;
 
-        } else if (data['command'] === 'new_message') {
-            chatArea.innerHTML += '<div class="chat__message">' +
-                '<div class="message__author">' + data['message']['author'] + '</div>' +
-                '<div class="message__content">' + data['message']['content'] + '</div>' +
-                {#data['messages']['timestamp'].format('') +#}
-                '</div>';
+            case 'messages':
+                for (let i = 0; i < data['messages'].length; i++) {
+                    chatArea.innerHTML += '<div class="chat__message">' +
+                        '<div class="message__author">' + data['messages'][i]['author'] + '</div>' +
+                        '<div class="message__content">' + data['messages'][i]['content'] + '</div>' +
+                        '</div>';
+                        {#data['messages'][i]['timestamp'].format('') +#}
+
+                }
+                chatArea.scrollTop = chatArea.scrollHeight;
+                break;
+
+            case 'new_message':
+                chatArea.innerHTML += '<div class="chat__message">' +
+                    '<div class="message__author">' + data['message']['author'] + '</div>' +
+                    '<div class="message__content">' + data['message']['content'] + '</div>' +
+                    '</div>';
+                    {#data['messages']['timestamp'].format('') +#}
+
+                chatArea.scrollTop = chatArea.scrollHeight;
+                break;
+
+            case 'set_game':
+                gameArea.innerHTML += '<div class="my_field"><table></table></div>'
+{#THIS FAKIN TABLE#}
+                break;
         }
-        chatArea.scrollTop = chatArea.scrollHeight;
-    };
+    }
 
     ws.onclose = function (e) {
         console.error('Chat socket closed unexpectedly');

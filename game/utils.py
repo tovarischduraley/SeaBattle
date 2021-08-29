@@ -10,6 +10,7 @@ def create_game_name():
 def message_to_json(message):
     return {
         'author': message.author.username,
+        'game_room': message.game_room.group_channel_name,
         'content': message.content,
         'timestamp': str(message.timestamp),
     }

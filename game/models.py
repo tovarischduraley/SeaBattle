@@ -36,21 +36,24 @@ class GameState(models.Model):
 
 
 class Cell(Enum):
+    EMPTY_NOT_SHOTED = 0
     EMPTY_SHOTED = 1
-    EMPTY_NOT_SHOTED = 2
+    SHIP_NOT_SHOTED = 2
     SHIP_SHOTED = 3
-    SHIP_NOT_SHOTED = 4
-    SHIP_DEAD = 5
+    SHIP_DEAD = 4
 
 
 class BattleField:
+
     def __init__(self):
-        self.field = [[Cell.EMPTY_NOT_SHOTED for i in range(10)] for j in range(10)]
+        self.field = [[Cell.EMPTY_NOT_SHOTED.value for i in range(10)] for j in range(10)]
 
     def dump(self, name):
-        with open(name) as f:
+        with open(name, 'wb') as f:
             pickle.dump(self.field, f)
+        f.close()
 
     def load(self, name):
-        with open(name) as f:
+        with open(name, 'rb') as f:
             self.field = pickle.load(f)
+        f.close()

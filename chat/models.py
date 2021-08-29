@@ -3,6 +3,8 @@ from django.db import models
 
 from game.models import Player, Game
 
+from game.models import*
+bf = BattleField()
 
 class Message(models.Model):
     author = models.ForeignKey(User, related_name='author_messages', on_delete=models.CASCADE)

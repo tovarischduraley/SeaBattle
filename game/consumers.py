@@ -6,70 +6,10 @@ from channels.generic.websocket import WebsocketConsumer
 from django.contrib.auth.models import User
 from chat.models import Message
 from .utils import create_game_name, message_to_json, messages_to_json
-from .models import Player, Game, GameState
+from .models import Player, Game, GameState, BattleField
 
 
 class ChatConsumer(WebsocketConsumer):
-
-    def fetch_messages(self, data):
-        # print('fetching')
-        messages = Message.objects.order_by('-timestamp').all()[:10]
-        content = {
-            'command': 'messages',
-            'messages': messages_to_json(reversed(messages))
-        }
-        # print('fetched')
-        self.send_message(content)
-
-    def new_message(self, data):
-        author_user = User.objects.filter(username=self.scope['user']).first()
-        message = Message.objects.create(
-            author=author_user,
-            content=data['message']
-        )
-
-        content = {
-            'command': 'new_message',
-            'message': message_to_json(message)
-        }
-
-        return self.send_chat_message(content)
-
-    # def wait_for_opponent(self):
-    #     pass
-
-    def create_game(self, player1, player2):
-        game_name = str(create_game_name())
-        game = Game.objects.create(group_channel_name=game_name)
-        GameState.objects.create(
-            game=game,
-            whos_turn=random.choice([player1, player2]),
-            bf1_owner=player1,
-            bf2_owner=player2,
-            bf1=f'{game_name}_1',
-            bf2=f'{game_name}_2',
-        )
-        player1.game = game
-        player1.is_playing = True
-        player1.save()
-
-        player2.game = game
-        player2.is_playing = True
-        player2.save()
-
-        return game.group_channel_name
-
-    def start_game(self):
-        pass
-
-    def load_game(self):
-        pass
-
-    commands = {
-        'fetch_messages': fetch_messages,
-        'new_message': new_message,
-        'start_game': start_game
-    }
 
     def connect(self):
         # print('connecting')
@@ -93,25 +33,23 @@ class ChatConsumer(WebsocketConsumer):
                 opponent = Player.objects.filter(is_online=True, is_playing=False).exclude(user=player.user).first()
                 if opponent:
 
-                    group_channel_name = self.create_game(player, opponent)
+                    game = self.create_game(player, opponent)
+
+                    player_bf, opponent_bf = self.create_battle_fields(game)
 
                     async_to_sync(self.channel_layer.group_add)(
-                        group_channel_name,
+                        game.group_channel_name,
                         [player.channel_name, opponent.channel_name]
                     )
 
-                    # async_to_sync(self.channel_layer.group_add)(
-                    #     group_channel_name,
-                    #     opponent.channel_name
-                    # )
-
                     async_to_sync(self.channel_layer.group_send)(
-                        group_channel_name,
+                        game.group_channel_name,
                         {
                             "type": "send_message",
                             "message": {
-                                'request_type': 'start_game',
-                                # ''GAME DATA
+                                'command': 'set_game',
+                                'player1_bf': player_bf,
+                                'player2_bf': opponent_bf,
                             }
                         }
                     )
@@ -157,9 +95,83 @@ class ChatConsumer(WebsocketConsumer):
             self.commands[command](self, data)
         # print('received')
 
+    def fetch_messages(self, data):
+        # print('fetching')
+        player = Player.objects.filter(user=self.scope['user']).first()
+        messages = Message.objects.filter(game_room=player.game).order_by('-timestamp').all()[:10]
+        content = {
+            'command': 'messages',
+            'messages': messages_to_json(reversed(messages))
+        }
+        # print('fetched')
+        self.send_message(content)
+
+    def new_message(self, data):
+        player = Player.objects.filter(user=self.scope['user']).first()
+        if player.game:
+            author = player.user
+            message = Message.objects.create(
+                author=author,
+                game_room=player.game,
+                content=data['message']
+            )
+
+            content = {
+                'command': 'new_message',
+                'group_channel_name': player.game.group_channel_name,
+                'message': message_to_json(message)
+            }
+
+            return self.send_chat_message(content)
+        return self.send_message(
+            {
+                'command': 'error',
+                'message': 'Your game is not ready yet. So, wait for your opponent'
+            }
+        )
+
+    def create_game(self, player1, player2):
+        game_name = str(create_game_name())
+        game = Game.objects.create(group_channel_name=game_name)
+        GameState.objects.create(
+            game=game,
+            whos_turn=random.choice([player1, player2]),
+            bf1_owner=player1,
+            bf2_owner=player2,
+            bf1=f'{game_name}_1',
+            bf2=f'{game_name}_2',
+        )
+        player1.game = game
+        player1.is_playing = True
+        player1.save()
+
+        player2.game = game
+        player2.is_playing = True
+        player2.save()
+
+        return game
+
+    def create_battle_fields(self, game):
+
+        battle_field1 = BattleField()
+        battle_field2 = BattleField()
+
+        battle_field1.dump(name=game.state.bf1)
+        battle_field2.dump(name=game.state.bf2)
+
+        return battle_field1, battle_field2
+
+
+    def start_game(self):
+        pass
+
+    def load_game(self):
+        pass
+
+
     def send_chat_message(self, message):
         async_to_sync(self.channel_layer.group_send)(
-            'game',
+            message['group_channel_name'],
             {
                 'type': 'chat_message',
                 'message': message
@@ -174,6 +186,12 @@ class ChatConsumer(WebsocketConsumer):
     def chat_message(self, event):
         # print('CHAT_MESSAGE sending message')
         message = event['message']
-        print(message)
+        # print(message)
         self.send(text_data=json.dumps(message))
         # print('CHAT_MESSAGE message sent')
+
+    commands = {
+        'fetch_messages': fetch_messages,
+        'new_message': new_message,
+        'start_game': start_game
+    }
