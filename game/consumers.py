@@ -20,14 +20,24 @@ class ChatConsumer(WebsocketConsumer):
                 player = Player.objects.create(
                     user=current_user,
                     is_online=True,
-                    channel_name=self.channel_name
                 )
             if player.is_playing:
                 # reconnect to the game
+                game = player.game
                 async_to_sync(self.channel_layer.group_add)(
-                    player.game.group_channel_name,
+                    game.group_channel_name,
                     self.channel_name
                 )
+                player_bf = BattleField()
+                player_bf.load(game.state.bf1)
+                player_bf = player_bf.field
+
+                opponent_bf = BattleField()
+                opponent_bf.load(game.state.bf2)
+                opponent_bf = opponent_bf.field
+
+                self.load_battle_fields(player_bf, opponent_bf)
+
             else:
                 # search opponent or wait for opponent
                 opponent = Player.objects.filter(is_online=True, is_playing=False).exclude(user=player.user).first()
@@ -35,31 +45,44 @@ class ChatConsumer(WebsocketConsumer):
 
                     game = self.create_game(player, opponent)
 
+                    battle_field1 = BattleField()
+                    battle_field2 = BattleField()
+
+                    battle_field1.dump(name=game.state.bf1)
+                    battle_field2.dump(name=game.state.bf2)
+
                     player_bf, opponent_bf = self.create_battle_fields(game)
 
                     async_to_sync(self.channel_layer.group_add)(
                         game.group_channel_name,
-                        [player.channel_name, opponent.channel_name]
+                        self.channel_name
+                    )
+                    async_to_sync(self.channel_layer.group_add)(
+                        game.group_channel_name,
+                        opponent.channel_name,
                     )
 
-                    async_to_sync(self.channel_layer.group_send)(
-                        game.group_channel_name,
-                        {
-                            "type": "send_message",
-                            "message": {
-                                'command': 'set_game',
-                                'player1_bf': player_bf,
-                                'player2_bf': opponent_bf,
-                            }
-                        }
-                    )
+                    self.load_battle_fields(player_bf, opponent_bf)
+                    # async_to_sync(self.channel_layer.group_send)(
+                    #     game.group_channel_name,
+                    #     {
+                    #         'type': 'event_message',
+                    #         'message': {
+                    #             'command': 'start_game',
+                    #             '4ship_count': 1,
+                    #             '3ship_count': 2,
+                    #             '2ship_count': 3,
+                    #             '1ship_count': 4,
+                    #         }
+                    #     }
+                    # )
 
                 else:
                     # wait for opponent
                     async_to_sync(self.channel_layer.send)(
                         self.channel_name,
                         {
-                            'type': 'send_message',
+                            'type': 'event_message',
                             'message': {
                                 'command': 'waiting_for_opponent',
                             }
@@ -67,14 +90,10 @@ class ChatConsumer(WebsocketConsumer):
                     )
 
             self.accept()
+            player.channel_name = self.channel_name
             player.is_online = True
             player.save()
 
-            # print('connected')
-            # Set Online
-            # Прелоадер
-            # Проверить на существование
-            # Если есть то переподключать
 
     def disconnect(self, close_code):
         player = Player.objects.filter(user=self.scope['user']).first()
@@ -138,8 +157,8 @@ class ChatConsumer(WebsocketConsumer):
             whos_turn=random.choice([player1, player2]),
             bf1_owner=player1,
             bf2_owner=player2,
-            bf1=f'{game_name}_1',
-            bf2=f'{game_name}_2',
+            bf1=f'{game_name}1',
+            bf2=f'{game_name}2',
         )
         player1.game = game
         player1.is_playing = True
@@ -151,47 +170,40 @@ class ChatConsumer(WebsocketConsumer):
 
         return game
 
-    def create_battle_fields(self, game):
 
-        battle_field1 = BattleField()
-        battle_field2 = BattleField()
-
-        battle_field1.dump(name=game.state.bf1)
-        battle_field2.dump(name=game.state.bf2)
-
-        return battle_field1, battle_field2
-
-
-    def start_game(self):
-        pass
-
-    def load_game(self):
-        pass
-
+    def load_battle_fields(self, bf1, bf2):
+        async_to_sync(self.channel_layer.send)(
+            self.channel_name,
+            {
+                'type': 'event_message',
+                'message': {
+                    'command': 'load_bfs',
+                    'player1_bf': bf1,
+                    # 'player1_ships': bf1,
+                    'player2_bf': bf2,
+                    # 'player2_ships': bf2,
+                }
+            }
+        )
 
     def send_chat_message(self, message):
         async_to_sync(self.channel_layer.group_send)(
             message['group_channel_name'],
             {
-                'type': 'chat_message',
+                'type': 'event_message',
                 'message': message
             }
         )
 
     def send_message(self, message):
-        # print('SEND_MESSAGE sending message')
         self.send(text_data=json.dumps(message))
-        # print('SEND_MESSAGE message sent')
 
-    def chat_message(self, event):
-        # print('CHAT_MESSAGE sending message')
+    def event_message(self, event):
         message = event['message']
-        # print(message)
         self.send(text_data=json.dumps(message))
-        # print('CHAT_MESSAGE message sent')
 
     commands = {
         'fetch_messages': fetch_messages,
         'new_message': new_message,
-        'start_game': start_game
+        'load_battle_fields': load_battle_fields
     }

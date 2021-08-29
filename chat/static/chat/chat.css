@@ -1,0 +1,35 @@
+.chat {
+    display: block;
+    height: 100%;
+    width: 1000px;
+    max-width: 50%;
+}
+
+#chat__area {
+    height: 1000px;
+    display: block;
+    border: black 1px solid;
+    overflow-y: scroll;
+    background-color: #0f131c;
+}
+
+.chat__message {
+    display: block;
+    width: 400px;
+    min-height: 60px;
+    background-color: #191f2b;
+    padding: 15px;
+    color: #ffffff;
+    border: white 1px solid;
+    border-radius: 20px;
+    font-size: 20px;
+    margin: 20px 30px;
+    overflow: hidden;
+}
+
+.message__author {
+    font-weight: 700;
+    font-size: 25px;
+    margin-bottom: 5px;
+    color: #9a1c6c;
+}

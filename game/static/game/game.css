@@ -1,0 +1,54 @@
+
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: space-around;
+}
+.fields{
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0px;
+}
+
+#game__area {
+    display: block;
+    height: 1000px;
+    width: 1000px;
+    background-color: #0f131c;
+    margin-right: 20px;
+}
+
+.field{
+    height: 400px;
+    width: 400px;
+    margin: 0px 20px;
+    background-color: cornsilk;
+    border: 1px black solid;
+}
+
+.cell {
+    width: 20px;
+    height: 20px;
+    background-color: cadetblue;
+}
+
+.empty__shoted{
+    background-color: gray;
+}
+
+.ship__not__shoted{
+    background-color: lightgoldenrodyellow;
+}
+.ship__shoted{
+    background-color: darkred;
+}
+.ship__dead{
+    background-color: black;
+}
+
+table td {
+    border-collapse: collapse;
+    border: 1px solid black;
+}
+

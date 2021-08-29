@@ -46,14 +46,15 @@ class Cell(Enum):
 class BattleField:
 
     def __init__(self):
-        self.field = [[Cell.EMPTY_NOT_SHOTED.value for i in range(10)] for j in range(10)]
+        self.field = [[Cell.EMPTY_NOT_SHOTED.name for i in range(10)] for j in range(10)]
+        self.ships = [4, 3, 2, 1]
 
     def dump(self, name):
-        with open(name, 'wb') as f:
+        with open(f'bf_dumps/{name}', 'wb') as f:
             pickle.dump(self.field, f)
         f.close()
 
     def load(self, name):
-        with open(name, 'rb') as f:
+        with open(f'bf_dumps/{name}', 'rb') as f:
             self.field = pickle.load(f)
         f.close()
