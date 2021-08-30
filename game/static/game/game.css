@@ -1,4 +1,6 @@
-
+body{
+    font-family: sans-serif;
+}
 .container {
     width: 100%;
     height: 100%;
@@ -28,8 +30,8 @@
 }
 
 .cell {
-    width: 20px;
-    height: 20px;
+    width: 35px;
+    height: 35px;
     background-color: cadetblue;
 }
 
@@ -45,6 +47,27 @@
 }
 .ship__dead{
     background-color: black;
+}
+
+.info{
+    width: 960px;
+    height: 540px;
+    margin: 20px;
+    background-color: #f9f6f5;
+}
+
+.ships{
+    display: block;
+    width: 400px;
+    height: 400px;
+    margin-left: 20px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.ship{
+    display: block;
+    margin: 10px;
 }
 
 table td {

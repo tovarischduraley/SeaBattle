@@ -21,18 +21,17 @@
             </table>
         </div>
         <div id="info" class="info">
+            <div id="ships" class="ships">
 
+            </div>
         </div>
     </div>
     <div class="chat">
         <div id="chat__area">
 
         </div>
-        <br>
-        <input id="chat-message-input" type="text">
-        <br>
-        <br>
-        <input id="chat-message-submit" class="btn btn-dark" type="button" value="Send">
+        <input id="chat-message-input" type="text" style="width: 99%">
+        <input id="chat-message-submit" class="btn btn-dark" type="button"  value="Send">
     </div>
 </div>
 {{ room_name|json_script:"room-name" }}
@@ -45,7 +44,6 @@
     );
 
     ws.onopen = function (e) {
-        console.log('onopen')
         ws.send(JSON.stringify({
             'commands': ['fetch_messages']
         }))
@@ -82,20 +80,35 @@
                 break;
 
             case 'load_bfs':
-                {#LOAD SELF FIELD#}
                 draw_my_bf(data['player1_bf'])
-                {#LOAD ENEMY FIELD#}
                 draw_enemy_bf(data['player2_bf'])
+                draw_ships(data['player1_ships'])
                 break;
 
             case 'start_game':
 
-
                 break;
-
 
         }
     }
+    {#         REWORK!!!!         #}
+    function draw_ships(not_placed_ships) {
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < not_placed_ships[i]; j++) {
+                ship = document.createElement("table");
+                ship.className = 'ship';
+                tr = document.createElement('tr');
+                ship.appendChild(tr)
+                ships.appendChild(ship);
+                for (let k = 0; k < i + 1; k++) {
+                    let cell = document.createElement('td');
+                    cell.className = 'cell ship__not__shoted';
+                    tr.appendChild(cell);
+                }
+            }
+        }
+    }
+
 
     function draw_my_bf(my_bf, onClick = null, onOver = null, onOut = null) {
         for (let i = 0; i < 10; i++) {

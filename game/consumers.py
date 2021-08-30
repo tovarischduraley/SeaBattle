@@ -28,15 +28,18 @@ class ChatConsumer(WebsocketConsumer):
                     game.group_channel_name,
                     self.channel_name
                 )
-                player_bf = BattleField()
-                player_bf.load(game.state.bf1)
-                player_bf = player_bf.field
 
-                opponent_bf = BattleField()
-                opponent_bf.load(game.state.bf2)
-                opponent_bf = opponent_bf.field
+                bf = BattleField()
 
-                self.load_battle_fields(player_bf, opponent_bf)
+                bf.load(game.state.bf1)
+                player_bf = bf.field
+                player_ships = bf.ships
+
+                bf.load(game.state.bf2)
+                opponent_bf = bf.field
+                opponent_ships = bf.ships
+
+                self.load_battle_field(player_bf, player_ships, opponent_bf, opponent_ships)
 
             else:
                 # search opponent or wait for opponent
@@ -45,13 +48,15 @@ class ChatConsumer(WebsocketConsumer):
 
                     game = self.create_game(player, opponent)
 
-                    battle_field1 = BattleField()
-                    battle_field2 = BattleField()
+                    bf = BattleField()
 
-                    battle_field1.dump(name=game.state.bf1)
-                    battle_field2.dump(name=game.state.bf2)
+                    bf.dump(name=game.state.bf1)
+                    bf.dump(name=game.state.bf2)
 
-                    player_bf, opponent_bf = self.create_battle_fields(game)
+                    player_bf = bf.field
+                    player_ships = bf.ships
+                    opponent_bf = bf.field
+                    opponent_ships = bf.ships
 
                     async_to_sync(self.channel_layer.group_add)(
                         game.group_channel_name,
@@ -62,20 +67,8 @@ class ChatConsumer(WebsocketConsumer):
                         opponent.channel_name,
                     )
 
-                    self.load_battle_fields(player_bf, opponent_bf)
-                    # async_to_sync(self.channel_layer.group_send)(
-                    #     game.group_channel_name,
-                    #     {
-                    #         'type': 'event_message',
-                    #         'message': {
-                    #             'command': 'start_game',
-                    #             '4ship_count': 1,
-                    #             '3ship_count': 2,
-                    #             '2ship_count': 3,
-                    #             '1ship_count': 4,
-                    #         }
-                    #     }
-                    # )
+                    self.load_battle_fields(game, player_bf, player_ships, opponent_bf, opponent_ships)
+
 
                 else:
                     # wait for opponent
@@ -94,7 +87,6 @@ class ChatConsumer(WebsocketConsumer):
             player.is_online = True
             player.save()
 
-
     def disconnect(self, close_code):
         player = Player.objects.filter(user=self.scope['user']).first()
         if player.game:
@@ -109,20 +101,16 @@ class ChatConsumer(WebsocketConsumer):
 
     def receive(self, text_data):
         data = json.loads(text_data)
-        # print('receiving')
         for command in data['commands']:
             self.commands[command](self, data)
-        # print('received')
 
     def fetch_messages(self, data):
-        # print('fetching')
         player = Player.objects.filter(user=self.scope['user']).first()
         messages = Message.objects.filter(game_room=player.game).order_by('-timestamp').all()[:10]
         content = {
             'command': 'messages',
             'messages': messages_to_json(reversed(messages))
         }
-        # print('fetched')
         self.send_message(content)
 
     def new_message(self, data):
@@ -170,8 +158,22 @@ class ChatConsumer(WebsocketConsumer):
 
         return game
 
+    def load_battle_fields(self, game, bf1, ships1, bf2, ships2):
+        async_to_sync(self.channel_layer.group_send)(
+            game.group_channel_name,
+            {
+                'type': 'event_message',
+                'message': {
+                    'command': 'load_bfs',
+                    'player1_bf': bf1,
+                    'player1_ships': ships1,
+                    'player2_bf': bf2,
+                    'player2_ships': ships2,
+                }
+            }
+        )
 
-    def load_battle_fields(self, bf1, bf2):
+    def load_battle_field(self, bf1, ships1, bf2, ships2):
         async_to_sync(self.channel_layer.send)(
             self.channel_name,
             {
@@ -179,9 +181,9 @@ class ChatConsumer(WebsocketConsumer):
                 'message': {
                     'command': 'load_bfs',
                     'player1_bf': bf1,
-                    # 'player1_ships': bf1,
+                    'player1_ships': ships1,
                     'player2_bf': bf2,
-                    # 'player2_ships': bf2,
+                    'player2_ships': ships2,
                 }
             }
         )
@@ -202,8 +204,12 @@ class ChatConsumer(WebsocketConsumer):
         message = event['message']
         self.send(text_data=json.dumps(message))
 
+    def ship_placed(self):
+        pass
+
     commands = {
         'fetch_messages': fetch_messages,
         'new_message': new_message,
-        'load_battle_fields': load_battle_fields
+        'load_battle_fields': load_battle_fields,
+        'ship_placed': ship_placed,
     }
