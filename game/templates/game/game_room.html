@@ -24,6 +24,9 @@
             <div id="ships" class="ships">
 
             </div>
+            <div class="messages">
+
+            </div>
         </div>
     </div>
     <div class="chat">
@@ -31,11 +34,12 @@
 
         </div>
         <input id="chat-message-input" type="text" style="width: 99%">
-        <input id="chat-message-submit" class="btn btn-dark" type="button"  value="Send">
+        <input id="chat-message-submit" class="btn btn-dark" type="button" value="Send">
     </div>
 </div>
 {{ room_name|json_script:"room-name" }}
 <script>
+
 
     const ws = new WebSocket(
         'ws://'
@@ -80,100 +84,15 @@
                 break;
 
             case 'load_bfs':
-                draw_my_bf(data['player1_bf'])
-                draw_enemy_bf(data['player2_bf'])
-                draw_ships(data['player1_ships'])
-                break;
-
-            case 'start_game':
-
+                draw_my_bf(data['my_bf'])
+                draw_enemy_bf(data['opponent_bf'])
+                draw_ships(data['my_ships'], data['my_bf'])
                 break;
 
         }
     }
-    {#         REWORK!!!!         #}
-    function draw_ships(not_placed_ships) {
-        for (let i = 0; i < 4; i++) {
-            for (let j = 0; j < not_placed_ships[i]; j++) {
-                ship = document.createElement("table");
-                ship.className = 'ship';
-                tr = document.createElement('tr');
-                ship.appendChild(tr)
-                ships.appendChild(ship);
-                for (let k = 0; k < i + 1; k++) {
-                    let cell = document.createElement('td');
-                    cell.className = 'cell ship__not__shoted';
-                    tr.appendChild(cell);
-                }
-            }
-        }
-    }
 
 
-    function draw_my_bf(my_bf, onClick = null, onOver = null, onOut = null) {
-        for (let i = 0; i < 10; i++) {
-            let tr = document.createElement("tr")
-            my_field.appendChild(tr);
-            for (let j = 0; j < 10; j++) {
-                let cell = document.createElement("td");
-                switch (my_bf[i][j]) {
-                    case 'EMPTY_NOT_SHOTED':
-                        cell.className = 'cell';
-                        break;
-
-                    case 'EMPTY_SHOTED':
-                        cell.className = 'cell empty__shoted';
-                        break;
-
-                    case 'SHIP_NOT_SHOTED':
-                        cell.className = 'cell ship__not__shoted';
-                        break;
-
-                    case 'SHIP_SHOTED':
-                        cell.className = 'cell ship__shoted';
-                        break;
-
-                    case 'SHIP_DEAD':
-                        cell.className = 'cell ship__dead';
-                        break;
-                }
-                tr.appendChild(cell);
-
-
-            }
-        }
-    }
-
-    function draw_enemy_bf(enemy_bf, onClick = null, onOver = null, onOut = null) {
-        for (let i = 0; i < 10; i++) {
-            let tr = document.createElement("tr");
-            enemy_field.appendChild(tr);
-            for (let j = 0; j < 10; j++) {
-                let cell = document.createElement("td");
-                switch (enemy_bf[i][j]) {
-                    case 'EMPTY_NOT_SHOTED':
-                        cell.className = 'cell';
-                        break;
-                    case 'EMPTY_SHOTED':
-                        cell.className = 'cell empty__shoted';
-                        break;
-
-                    case 'SHIP_NOT_SHOTED':
-                        cell.className = 'cell';
-                        break;
-
-                    case 'SHIP_SHOTED':
-                        cell.className = 'cell ship__shoted';
-                        break;
-
-                    case 'SHIP_DEAD':
-                        cell.className = 'cell ship__dead';
-                        break;
-                }
-                tr.appendChild(cell);
-            }
-        }
-    }
 
     ws.onclose = function (e) {
         console.error('Chat socket closed unexpectedly');
@@ -196,6 +115,14 @@
         }));
         messageInputDom.value = '';
     };
+
+
+
+    var script = document.createElement('script');
+    script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';
+    script.type = 'text/javascript';
+    document.getElementsByTagName('head')[0].appendChild(script);
 </script>
+<script src="{% static 'game/draw_game.js' %}"></script>
 </body>
 </html>

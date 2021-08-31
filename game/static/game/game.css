@@ -52,6 +52,7 @@ body{
 .info{
     width: 960px;
     height: 540px;
+    display: flex;
     margin: 20px;
     background-color: #f9f6f5;
 }
@@ -66,7 +67,7 @@ body{
 }
 
 .ship{
-    display: block;
+    /*display: inline-block;*/
     margin: 10px;
 }
 
