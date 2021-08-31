@@ -1,28 +1,9 @@
-function change_field(x, y, state) {
-    ws.send(JSON.stringify({
-        'message': {
-            'x': x,
-            'y': y,
-            'state': state,
-        },
-        'commands': ['change_state']
-    }))
-}
-
-function can_be_placed(ship, my_bf) {
-    // if (ship.is_rotated){
-    //
-    // }
-    console.log(ship.x, ship.y, ship.length)
-}
-
 function draw_ships(not_placed_ships, my_bf) {
-    let id_counter = 0
+    document.getElementById('ships').innerHTML = ''
     for (let i = 0; i < 4; i++) {
         for (let j = 0; j < not_placed_ships[i]; j++) {
             ship = document.createElement("table");
             ship.className = 'ship';
-            ship.id = id_counter
             tr = document.createElement('tr');
             ship.appendChild(tr)
             ships.appendChild(ship);
@@ -37,66 +18,99 @@ function draw_ships(not_placed_ships, my_bf) {
 
 
             ship.onclick = function () {
-                newShip = new Ship(this.id, this.length)
+                let newShip = new Ship(this.length)
 
                 $('.my_bf').off('click').on('click', function () {
-                    let row = $(this).closest('tr').index();
-                    let col = $(this).index()
-                    newShip.x = col
-                    newShip.y = row
 
-                    can_be_placed(newShip, my_bf)
+                    document.onkeypress = function () {
+                    }
+
+                    newShip.x = $(this).closest('tr').index();
+                    newShip.y = $(this).index()
+                    if (!newShip.is_rotated) {
+                        for (let i = 0; i < newShip.length; i++) {
+                            my_bf[newShip.x][newShip.y + i] = 'SHIP_NOT_SHOTED'
+                        }
+                    } else {
+                        for (let i = 0; i < newShip.length; i++) {
+                            my_bf[newShip.x + i][newShip.y] = 'SHIP_NOT_SHOTED'
+                        }
+                    }
+                    ws.send(JSON.stringify({
+                        "commands": ["place_ship"],
+                        "message":
+                            {
+                                "my_bf": my_bf,
+                                "placed_ship_len": newShip.length
+                            }
+                    }))
+
                 })
 
                 $('.my_bf').off('mouseover').on('mouseover', function () {
-                    let row = $(this).closest('tr').index();
-                    let col = $(this).index()
-                    if (newShip.is_rotated) {
-                        for (let i = 0; i < newShip.length; i++) {
-                            try {
-                                get_cell(row + i, col).style.backgroundColor = 'lightgoldenrodyellow'
-                            } catch (e) {
-                                return;
-                            }
-                        }
-
-                    } else {
-                        for (let i = 0; i < newShip.length; i++) {
-                            try {
-                                get_cell(row, col + i).style.backgroundColor = 'lightgoldenrodyellow'
-                            } catch (e) {
-                                return;
-                            }
-                        }
-                    }
+                    newShip.y = $(this).closest('tr').index();
+                    newShip.x = $(this).index()
+                    draw(newShip)
                 });
 
                 $('.my_bf').off('mouseout').on('mouseout', function () {
-                    let row = $(this).closest('tr').index();
-                    let col = $(this).index()
-                    if (newShip.is_rotated) {
-                        for (let i = 0; i < newShip.length; i++) {
-                            try {
-                                get_cell(row + i, col).style.backgroundColor = 'cadetblue'
-                            } catch (e) {
-                                return;
-                            }
-                        }
-                    } else {
-                        for (let i = 0; i < newShip.length; i++) {
-                            try {
-                                get_cell(row, col + i).style.backgroundColor = 'cadetblue'
-
-                            } catch (e) {
-                                return;
-                            }
-                        }
-                    }
+                    newShip.y = $(this).closest('tr').index();
+                    newShip.x = $(this).index()
+                    redraw(newShip)
                 })
+
+                document.onkeypress = function (event) {
+                    event.preventDefault();
+                    if (event.code === 'KeyR') {
+                        redraw(newShip)
+                        newShip.is_rotated = !newShip.is_rotated
+                        draw(newShip)
+                    }
+                }
             }
+        }
+    }
+}
 
+function can_be_placed(ship, my_bf) {
 
-            id_counter++
+}
+
+function draw(newShip) {
+    if (newShip.is_rotated) {
+        for (let i = 0; i < newShip.length; i++) {
+            if (newShip.y + newShip.length - 1 > 9) {
+                if (newShip.y + i < 10) {
+                    get_cell(newShip.y + i, newShip.x).style.backgroundColor = 'darkred'
+                }
+            } else {
+                get_cell(newShip.y + i, newShip.x).style.backgroundColor = 'lightgoldenrodyellow'
+            }
+        }
+
+    } else {
+        for (let i = 0; i < newShip.length; i++) {
+            if (newShip.x + newShip.length - 1 > 9) {
+                if (newShip.x + i < 10) {
+                    get_cell(newShip.y, newShip.x + i).style.backgroundColor = 'darkred'
+                }
+            } else {
+                get_cell(newShip.y, newShip.x + i).style.backgroundColor = 'lightgoldenrodyellow'
+            }
+        }
+    }
+}
+
+function redraw(newShip) {
+    if (newShip.is_rotated) {
+        for (let i = 0; i < newShip.length; i++) {
+            if (newShip.y + i > 9) break;
+            get_cell(newShip.y + i, newShip.x).style.backgroundColor = ''
+        }
+    } else {
+        for (let i = 0; i < newShip.length; i++) {
+            if (newShip.x + i > 9) break;
+            get_cell(newShip.y, newShip.x + i).style.backgroundColor = ''
         }
     }
 }
@@ -105,27 +119,20 @@ function get_cell(row, col) {
     return my_field.getElementsByTagName('tr')[row].getElementsByTagName('td')[col]
 }
 
-function Ship(id, length) {
-    this.id = id
+function Ship(length) {
     this.length = length
     this.is_rotated = false
     this.x = null
     this.y = null
 }
 
-
 function draw_my_bf(my_bf) {
+    document.getElementById('my_field').innerHTML = ''
     for (let i = 0; i < 10; i++) {
         let tr = document.createElement("tr")
         my_field.appendChild(tr);
         for (let j = 0; j < 10; j++) {
             let cell = document.createElement("td");
-            $(cell).click(function () {
-                let $this = $(this);
-                let col = $this.index();
-                let row = $this.closest('tr').index()
-                change_field(row, col, "SHIP_SHOTED");
-            })
             switch (my_bf[i][j]) {
                 case 'EMPTY_NOT_SHOTED':
                     cell.className = 'cell my_bf';
@@ -148,13 +155,13 @@ function draw_my_bf(my_bf) {
                     break;
             }
             tr.appendChild(cell);
-
-
         }
     }
 }
 
 function draw_enemy_bf(enemy_bf) {
+    document.getElementById('enemy_field').innerHTML = ''
+
     for (let i = 0; i < 10; i++) {
         let tr = document.createElement("tr");
         enemy_field.appendChild(tr);

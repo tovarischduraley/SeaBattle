@@ -67,8 +67,14 @@ body{
 }
 
 .ship{
-    /*display: inline-block;*/
     margin: 10px;
+}
+
+#messages{
+    text-overflow: clip;
+    font-weight: 500;
+    font-size: 25px;
+    margin-top: 20px;
 }
 
 table td {

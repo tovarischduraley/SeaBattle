@@ -24,8 +24,10 @@
     border-radius: 20px;
     font-size: 20px;
     margin: 20px 30px;
+    word-break: break-all;
     overflow: hidden;
 }
+
 
 .message__author {
     font-weight: 700;

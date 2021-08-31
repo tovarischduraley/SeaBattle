@@ -24,7 +24,7 @@
             <div id="ships" class="ships">
 
             </div>
-            <div class="messages">
+            <div id="messages">
 
             </div>
         </div>
@@ -67,7 +67,7 @@
                 for (let i = 0; i < data['messages'].length; i++) {
                     chatArea.innerHTML += '<div class="chat__message">' +
                         '<div class="message__author">' + data['messages'][i]['author'] + '</div>' +
-                        '<div class="message__content">' + data['messages'][i]['content'] + '</div>' +
+                        '<span class="message__content">' + data['messages'][i]['content'] + '</span>' +
                         '</div>';
 
                 }
@@ -77,7 +77,7 @@
             case 'new_message':
                 chatArea.innerHTML += '<div class="chat__message">' +
                     '<div class="message__author">' + data['message']['author'] + '</div>' +
-                    '<div class="message__content">' + data['message']['content'] + '</div>' +
+                    '<span class="message__content">' + data['message']['content'] + '</span>' +
                     '</div>';
 
                 chatArea.scrollTop = chatArea.scrollHeight;
@@ -88,6 +88,8 @@
                 draw_enemy_bf(data['opponent_bf'])
                 draw_ships(data['my_ships'], data['my_bf'])
                 break;
+            case 'info_message':
+                messages.innerHTML = data['message']
 
         }
     }

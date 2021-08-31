@@ -24,6 +24,7 @@ class Player(models.Model):
 
 
 class GameState(models.Model):
+    name = models.CharField(max_length=100, default='GAME_NOT_STARTED')
     game = models.OneToOneField(Game, related_name='state', on_delete=models.CASCADE)
     whos_turn = models.ForeignKey(Player, related_name='game_state', on_delete=models.CASCADE)
     bf1_owner = models.ForeignKey(Player, related_name='bf1_owner_game_state', on_delete=models.CASCADE)
