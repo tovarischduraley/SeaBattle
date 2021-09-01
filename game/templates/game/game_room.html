@@ -88,12 +88,119 @@
                 draw_enemy_bf(data['opponent_bf'])
                 draw_ships(data['my_ships'], data['my_bf'])
                 break;
+
             case 'info_message':
                 messages.innerHTML = data['message']
+                break;
+
+            case 'start_game':
+                let field = data['opponent_field']
+                console.log('make_a_shot')
+                console.log(field)
+                $(function () {
+                    $('.op_bf').mouseover(function () {
+                        console.log('over')
+                        this.style.backgroundColor = 'cornflowerblue';
+                    })
+                    $('.op_bf').off("mouseout").on("mouseout", function () {
+                        console.log('out')
+
+                        this.style.backgroundColor = '';
+                    })
+                    $('.op_bf').off("click").on("click", function () {
+                        console.log('click')
+                        let x = $(this).closest('tr').index();
+                        let y = $(this).index();
+
+                        switch (field[x][y]) {
+                            case 'EMPTY_NOT_SHOTED':
+                                console.log('EMPTY_NOT_SHOTED')
+                                field[x][y] = 'EMPTY_SHOTED';
+                                switch_turn()
+                                shot(field)
+                                this.click = function () {
+                                }
+                                this.mouseover = function () {
+                                }
+                                this.mouseout = function () {
+                                }
+                                break;
+                            case 'SHIP_NOT_SHOTED':
+                                console.log('SHIP_NOT_SHOTED')
+                                field[x][y] = 'SHIP_SHOTED';
+                                shot(field)
+                                break;
+                        }
+                    })
+                })
+
+                break;
+
+            case 'load_my_bf':
+                draw_my_bf(data['bf'])
+                break;
+
+            case 'load_opp_bf':
+                draw_enemy_bf(data['bf'])
+                break;
 
         }
     }
 
+    function make_a_shot(op_bf) {
+        console.log('make_a_shot')
+
+        $('.op_bf').off("mouseover").on("mouseover", function () {
+            console.log('over')
+            this.style.backgroundColor = 'cornflowerblue';
+        })
+        $('.op_bf').off("mouseout").on("mouseout", function () {
+            console.log('out')
+
+            this.style.backgroundColor = '';
+        })
+        $('.op_bf').off("click").on("click", function () {
+            console.log('click')
+            let x = $(this).closest('tr').index();
+            let y = $(this).index();
+
+            switch (op_bf[x][y]) {
+                case 'EMPTY_NOT_SHOTED':
+                    console.log('EMPTY_NOT_SHOTED')
+                    op_bf[x][y] = 'EMPTY_SHOTED';
+                    switch_turn()
+                    shot(op_bf)
+                    this.click = function () {
+                    }
+                    this.mouseover = function () {
+                    }
+                    this.mouseout = function () {
+                    }
+                    break;
+                case 'SHIP_NOT_SHOTED':
+                    console.log('SHIP_NOT_SHOTED')
+                    op_bf[x][y] = 'SHIP_SHOTED';
+                    shot(op_bf)
+                    break;
+            }
+        })
+    }
+
+    function shot(op_bf) {
+        console.log('shot')
+        ws.send(JSON.stringify({
+            "commands": ["shot"],
+            "op_bf": op_bf
+        }))
+    }
+
+    function switch_turn() {
+        console.log('switch_turn')
+
+        ws.send(JSON.stringify({
+            "commands": ["switch_turn"],
+        }))
+    }
 
 
     ws.onclose = function (e) {
@@ -117,7 +224,6 @@
         }));
         messageInputDom.value = '';
     };
-
 
 
     var script = document.createElement('script');

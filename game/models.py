@@ -47,7 +47,7 @@ class Cell(Enum):
 class BattleField:
     def __init__(self):
         self.field = [[Cell.EMPTY_NOT_SHOTED.name for i in range(10)] for j in range(10)]
-        self.ships = [4, 3, 2, 1]
+        self.ships = [1, 1, 1, 1]
 
     def dump(self, name):
         with open(f'bf_dumps/{name}', 'wb') as f:

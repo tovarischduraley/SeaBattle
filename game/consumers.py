@@ -12,11 +12,11 @@ from .models import Player, Game, GameState, BattleField
 class GameConsumer(WebsocketConsumer):
 
     def connect(self):
-        # print('connecting')
         current_user = self.scope['user']
         if current_user.is_authenticated:
             player = Player.objects.filter(user=current_user).first()
             if not player:
+                # create player
                 player = Player.objects.create(
                     user=current_user,
                     is_online=True,
@@ -26,90 +26,19 @@ class GameConsumer(WebsocketConsumer):
             player.save()
 
             if player.is_playing:
-                # reconnect to the game
-                game = player.game
-                async_to_sync(self.channel_layer.group_add)(
-                    game.group_channel_name,
-                    self.channel_name
-                )
-
-                bf = BattleField()
-
-                if player == game.state.bf1_owner:
-                    name = game.state.bf1
-                    opponent = game.state.bf2_owner
-                    opponent_name = game.state.bf2
-                else:
-                    name = game.state.bf2
-                    opponent = game.state.bf1_owner
-                    opponent_name = game.state.bf1
-
-                bf.load(name)
-                player_bf = bf.field
-                player_ships = bf.ships
-
-                bf.load(opponent_name)
-                opponent_bf = bf.field
-                opponent_ships = bf.ships
-
-                if player_ships != [0, 0, 0, 0]:
-                    message = "Place your ships to start play"
-                    self.info_message(self.channel_name, message)
-                elif opponent_ships != [0, 0, 0, 0]:
-                    message = "Wait for your opponent's filled field"
-                    self.info_message(self.channel_name, message)
-                else:
-                    self.say_whos_turn(player, opponent, game.state)
-
-                self.load_battle_field(self.channel_name, player_bf, player_ships, opponent_bf)
-
+                # reconnect
+                self.reconnect(player)
             else:
                 # search opponent or wait for opponent
                 opponent = Player.objects.filter(is_online=True, is_playing=False).exclude(user=player.user).first()
                 if opponent:
-                    game = self.create_game(player, opponent)
-
-                    bf = BattleField()
-
-                    bf.dump(name=game.state.bf1)
-                    bf.dump(name=game.state.bf2)
-
-                    player_bf = bf.field
-                    player_ships = bf.ships
-                    opponent_bf = bf.field
-                    opponent_ships = bf.ships
-
-                    async_to_sync(self.channel_layer.group_add)(
-                        game.group_channel_name,
-                        self.channel_name
-                    )
-                    async_to_sync(self.channel_layer.group_add)(
-                        game.group_channel_name,
-                        opponent.channel_name,
-                    )
-
-                    self.load_battle_field(self.channel_name, player_bf, player_ships, opponent_bf)
-                    self.load_battle_field(opponent.channel_name, opponent_bf, opponent_ships, player_bf)
-                    message = "Place your ships to start play"
-                    async_to_sync(self.channel_layer.group_send)(
-                        game.group_channel_name,
-                        {
-                            'type': 'event_message',
-                            'message': {
-                                'command': 'info_message',
-                                'message': message
-                            }
-                        }
-                    )
-                    self.info_message(player, message)
-
+                    self.found_opponent(player, opponent)
                 else:
                     # wait for opponent
                     message = "Let's wait for the opponent, you're not going to play alone, are you?"
                     self.info_message(player, message)
 
             self.accept()
-
 
     def disconnect(self, close_code):
         player = Player.objects.filter(user=self.scope['user']).first()
@@ -125,8 +54,87 @@ class GameConsumer(WebsocketConsumer):
 
     def receive(self, text_data):
         data = json.loads(text_data)
+        print('RECEIVE')
+        print(data)
+        print('RECEIVED')
         for command in data['commands']:
             self.commands[command](self, data)
+
+    def found_opponent(self, player, opponent):
+        game = self.create_game(player, opponent)
+
+        bf = BattleField()
+
+        bf.dump(name=game.state.bf1)
+        bf.dump(name=game.state.bf2)
+
+        player_bf = bf.field
+        player_ships = bf.ships
+        opponent_bf = bf.field
+        opponent_ships = bf.ships
+
+        async_to_sync(self.channel_layer.group_add)(
+            game.group_channel_name,
+            self.channel_name
+        )
+        async_to_sync(self.channel_layer.group_add)(
+            game.group_channel_name,
+            opponent.channel_name,
+        )
+
+        self.load_battle_field(self.channel_name, player_bf, player_ships, opponent_bf)
+        self.load_battle_field(opponent.channel_name, opponent_bf, opponent_ships, player_bf)
+        message = "Place your ships to start play"
+        async_to_sync(self.channel_layer.group_send)(
+            game.group_channel_name,
+            {
+                'type': 'event_message',
+                'message': {
+                    'command': 'info_message',
+                    'message': message
+                }
+            }
+        )
+        self.info_message(player, message)
+
+    def reconnect(self, player):
+        game = player.game
+        async_to_sync(self.channel_layer.group_add)(
+            game.group_channel_name,
+            self.channel_name
+        )
+        bf = BattleField()
+
+        if player == game.state.bf1_owner:
+            name = game.state.bf1
+            opponent = game.state.bf2_owner
+            opponent_name = game.state.bf2
+        else:
+            name = game.state.bf2
+            opponent = game.state.bf1_owner
+            opponent_name = game.state.bf1
+
+        bf.load(name)
+        player_bf = bf.field
+        player_ships = bf.ships
+
+        bf.load(opponent_name)
+        opponent_bf = bf.field
+        opponent_ships = bf.ships
+
+        if player_ships != [0, 0, 0, 0]:
+            message = "Place your ships to start play"
+            self.info_message(self.channel_name, message)
+        elif opponent_ships != [0, 0, 0, 0]:
+            message = "Wait for your opponent's filled field"
+            self.info_message(self.channel_name, message)
+        else:
+            print('reconnect your turn')
+            self.say_whos_turn(player, opponent, game.state)
+            if player == game.state.whos_turn:
+                self.start_game(player)
+
+        self.load_battle_field(self.channel_name, player_bf, player_ships, opponent_bf)
 
     def fetch_messages(self, data):
         player = Player.objects.filter(user=self.scope['user']).first()
@@ -213,7 +221,6 @@ class GameConsumer(WebsocketConsumer):
         self.send(text_data=json.dumps(message))
 
     def place_ship(self, data):
-        print('place_ship')
         player = Player.objects.filter(user=self.scope['user']).first()
         state = player.game.state
         if player == state.bf1_owner:
@@ -246,7 +253,6 @@ class GameConsumer(WebsocketConsumer):
 
         self.load_battle_field(player.channel_name, new_field, new_ships, opponent_field)
         if new_ships == [0, 0, 0, 0]:
-            print('123')
             self.change_game_state(player, opponent, state)
 
     def change_game_state(self, player, opponent, state):
@@ -255,7 +261,9 @@ class GameConsumer(WebsocketConsumer):
             state.name = 'GAME_STARTED'
             state.save()
             self.say_whos_turn(player, opponent, state)
-            # self.start_game()
+            print('first_start')
+            print('turn of ', state.whos_turn)
+            self.start_game(state.whos_turn)
 
         if state.name == 'GAME_NOT_STARTED':
             state.name = 'WAITING_FOR_OPPONENT'
@@ -263,6 +271,15 @@ class GameConsumer(WebsocketConsumer):
             message = "Wait for your opponent's filled field"
             self.info_message(player, message)
 
+    def get_opponents_battle_field(self, player):
+        bf = BattleField()
+        state = player.game.state
+        if player == state.bf1_owner:
+            bf.load(state.bf2)
+        else:
+            bf.load(state.bf1)
+
+        return bf.field
 
     def say_whos_turn(self, player, opponent, state):
         print('say_whos_turn')
@@ -277,9 +294,18 @@ class GameConsumer(WebsocketConsumer):
             message = "Wait for your opponent turn"
             self.info_message(player, message)
 
-    def start_game(self):
-
-        pass
+    def start_game(self, player):
+        print('start game')
+        async_to_sync(self.channel_layer.send)(
+            player.channel_name,
+            {
+                "type": 'event_message',
+                "message": {
+                    'command': 'start_game',
+                    'opponent_field': self.get_opponents_battle_field(player)
+                }
+            }
+        )
 
     def info_message(self, player, message):
         print('info_message')
@@ -294,8 +320,65 @@ class GameConsumer(WebsocketConsumer):
             }
         )
 
+    def get_opponent(self, player):
+        state = player.game.state
+        if player == state.bf1_owner:
+            return state.bf2_owner
+        else:
+            return state.bf1_owner
+
+    def shot(self, data):
+        print('shot')
+        player = Player.objects.filter(user=self.scope['user']).first()
+        opponent = self.get_opponent(player)
+        bf = BattleField()
+        if opponent == opponent.game.state.bf1_owner:
+            bf.load(opponent.game.state.bf1)
+            bf.field = data['op_bf']
+            bf.dump(opponent.game.state.bf1)
+        else:
+            bf.load(opponent.game.state.bf2)
+            bf.field = data['op_bf']
+            bf.dump(opponent.game.state.bf2)
+
+        print(bf.field)
+
+        async_to_sync(self.channel_layer.send)(
+            self.channel_name,
+            {
+                'type': 'event_message',
+                'message': {
+                    'command': 'load_opp_bf',
+                    'bf': bf.field,
+                }
+            })
+
+        async_to_sync(self.channel_layer.send)(
+            opponent.channel_name,
+            {
+                'type': 'event_message',
+                'message': {
+                    'command': 'load_my_bf',
+                    'bf': bf.field,
+                }
+            })
+        self.start_game(player.game.state.whos_turn)
+
+    def switch_turn(self, data):
+        print('switch turn')
+        player = Player.objects.filter(user=self.scope['user']).first()
+        opponent = self.get_opponent(player)
+        state = opponent.game.state
+        state.whos_turn = opponent
+        state.save()
+        self.say_whos_turn(player, opponent, state)
+        self.start_game(state.whos_turn)
+
+
     commands = {
         'fetch_messages': fetch_messages,
         'new_message': new_message,
         'place_ship': place_ship,
+        'shot': shot,
+        'switch_turn': switch_turn
     }

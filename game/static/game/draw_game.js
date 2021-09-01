@@ -22,8 +22,7 @@ function draw_ships(not_placed_ships, my_bf) {
 
                 $('.my_bf').off('click').on('click', function () {
 
-                    document.onkeypress = function () {
-                    }
+                    document.onkeypress = function () {}
 
                     newShip.x = $(this).closest('tr').index();
                     newShip.y = $(this).index()
@@ -169,14 +168,14 @@ function draw_enemy_bf(enemy_bf) {
             let cell = document.createElement("td");
             switch (enemy_bf[i][j]) {
                 case 'EMPTY_NOT_SHOTED':
-                    cell.className = 'cell';
+                    cell.className = 'cell op_bf';
                     break;
                 case 'EMPTY_SHOTED':
                     cell.className = 'cell empty__shoted';
                     break;
 
                 case 'SHIP_NOT_SHOTED':
-                    cell.className = 'cell';
+                    cell.className = 'cell op_bf';
                     break;
 
                 case 'SHIP_SHOTED':
