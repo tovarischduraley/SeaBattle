@@ -1,1 +1,6 @@
 .gitignore
+__pychache__/
+venv/
+db.sqlite3
+.idea
+bf_dumps/*

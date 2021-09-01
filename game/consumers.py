@@ -244,6 +244,14 @@ class GameConsumer(WebsocketConsumer):
         new_bf.load(name)
 
         new_field = new_bf.field
+        for row in new_field:
+            for col in row:
+                if col == "SHIP_NOT_SHOTED":
+                    print(1, end=' ')
+                else:
+                    print(0, end=' ')
+            print()
+
         new_ships = new_bf.ships
         bf.load(opponent_name)
         opponent_field = bf.field
@@ -319,6 +327,20 @@ class GameConsumer(WebsocketConsumer):
             return state.bf2_owner
         else:
             return state.bf1_owner
+
+    # def check_if_dead(self, bf, i, j):
+    #     pass
+    #
+    # def look_for_dead_ships(self, bf):
+    #     for i in range(10):
+    #         for j in range(10):
+    #             if bf[i][j] == 'SHIP_SHOTED':
+    #                 if bf[i + 1][j]:
+    #                     if bf[i + 1][j] == 'SHIP_SHOTED':
+    #                         self.check_if_dead(bf, i + 1, j)
+    #                 if bf[i][j + 1]:
+    #                     if bf[i][j + 1] == 'SHIP_SHOTED':
+    #                         self.check_if_dead(bf, i, j + 1)
 
     def shot(self, data):
         player = Player.objects.filter(user=self.scope['user']).first()

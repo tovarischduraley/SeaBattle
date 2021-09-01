@@ -1,3 +1,88 @@
+function can_be_placed(ship, my_bf) {
+
+    // MY_BF(ROW, COL)
+    // X - COL, Y - ROW
+    // ----------------
+    // MY_BF(Y, X)
+
+
+    if (!ship.is_rotated) {
+        if (ship.x + ship.length - 1 > 9) {
+            return false
+        }
+
+        let start_x = ship.x
+        let stop_x = ship.x + ship.length - 1
+
+        if (start_x > 0) {
+            start_x--
+            if (my_bf[ship.y][start_x] === 'SHIP_NOT_SHOTED') {
+                return false
+            }
+        }
+        if (stop_x < 9) {
+            stop_x++
+            if (my_bf[ship.y][stop_x] === 'SHIP_NOT_SHOTED') {
+                return false
+            }
+        }
+
+        if (my_bf[ship.y - 1]) {
+            for (let t = start_x; t <= stop_x; t++) {
+                if (my_bf[ship.y - 1][t] === 'SHIP_NOT_SHOTED') {
+                    return false
+                }
+            }
+        }
+
+        if (my_bf[ship.y + 1]) {
+            for (let t = start_x; t <= stop_x; t++) {
+                if (my_bf[ship.y + 1][t] === 'SHIP_NOT_SHOTED') {
+                    return false
+                }
+            }
+        }
+    } else {
+
+        if (ship.y + ship.length - 1 > 9) {
+            return false
+        }
+
+        let start_y = ship.y
+        let stop_y = ship.y + ship.length - 1
+
+
+        if (start_y > 0) {
+            start_y--
+            if (my_bf[start_y][ship.x] === 'SHIP_NOT_SHOTED') {
+                return false
+            }
+        }
+        if (stop_y < 9) {
+            stop_y++
+            if (my_bf[stop_y][ship.x] === 'SHIP_NOT_SHOTED') {
+                return false
+            }
+        }
+        console.log(my_bf[ship.y][ship.x - 1])
+        if (my_bf[ship.y][ship.x - 1]) {
+            for (let j = start_y; j <= stop_y; j++) {
+                if (my_bf[j][ship.x - 1] === 'SHIP_NOT_SHOTED') {
+                    return false
+                }
+            }
+        }
+        if (my_bf[ship.y][ship.x + 1]) {
+            for (let j = start_y; j <= stop_y; j++) {
+                if (my_bf[j][ship.x + 1] === 'SHIP_NOT_SHOTED') {
+                    return false
+                }
+            }
+        }
+    }
+    return true
+}
+
 function draw_ships(not_placed_ships, my_bf) {
     document.getElementById('ships').innerHTML = ''
     for (let i = 0; i < 4; i++) {
@@ -30,7 +115,7 @@ function draw_ships(not_placed_ships, my_bf) {
                         document.onkeypress = function () {
                         }
 
-                        if (!newShip.is_rotated) {
+                        if (newShip.is_rotated) {
                             for (let i = 0; i < newShip.length; i++) {
                                 my_bf[newShip.y + i][newShip.x] = 'SHIP_NOT_SHOTED'
                             }
@@ -39,6 +124,8 @@ function draw_ships(not_placed_ships, my_bf) {
                                 my_bf[newShip.y][newShip.x + i] = 'SHIP_NOT_SHOTED'
                             }
                         }
+
+
                         ws.send(JSON.stringify({
                             "commands": ["place_ship"],
                             "message":
@@ -81,116 +168,37 @@ function draw_ships(not_placed_ships, my_bf) {
     }
 }
 
-function can_be_placed(ship, my_bf) {
-    if (!ship.is_rotated) {
-        let start_x = ship.x
-        let stop_x = ship.x + ship.length - 1
 
-        console.log('start_x ', start_x, 'stop_x ', stop_x)
-
-        if (ship.x + ship.length - 1 > 9) {
-            return false
-        }
-
-
-        if (start_x > 0) {
-            start_x--
-            console.log('new_start_x ', start_x, 'new_stop_x ', stop_x)
-            if (my_bf[start_x][ship.y] === 'SHIP_NOT_SHOTED') {
-                return false
-            }
-        }
-        if (stop_x < 9) {
-            stop_x++
-            console.log('new_start_x ', start_x, 'new_stop_x ', stop_x)
-            if (my_bf[stop_x][ship.y] === 'SHIP_NOT_SHOTED') {
-                return false
-            }
-        }
-
-        // if (my_bf[ship.x][ship.y - 1]) {
-        //     for (let i = start_x; i <= stop_x; i++) {
-        //         if (my_bf[i][ship.y - 1] === 'SHIP_NOT_SHOTED') {
-        //             return false
-        //         }
-        //     }
-        // }
-        // if (my_bf[ship.x][ship.y + 1]) {
-        //     for (let i = start_x; i <= stop_x; i++) {
-        //         if (my_bf[i][ship.y + 1] === 'SHIP_NOT_SHOTED') {
-        //             return false
-        //         }
-        //     }
-        // }
-    } else {
-        if (ship.y + ship.length - 1 > 9) {
-            return false
-        }
-
-        let start_y = ship.y
-        let stop_y = ship.y + ship.length - 1
-
-        console.log('start_y ', start_y, ' stop_y ', stop_y)
-
-        if (start_y > 0) {
-            start_y--
-            console.log('new_start_y ', start_y, ' new_stop_y ', stop_y)
-            if (my_bf[ship.x][start_y] === 'SHIP_NOT_SHOTED') {
-                return false
-            }
-        }
-        if (stop_y < 9) {
-            stop_y++
-            console.log('new_start_y ', start_y, ' new_stop_y ', stop_y)
-
-            if (my_bf[ship.x][stop_y] === 'SHIP_NOT_SHOTED') {
-                return false
-            }
-        }
-
-        // if (my_bf[ship.x - 1][ship.y]) {
-        //     for (let j = start_y; j <= stop_y; j++) {
-        //         if (my_bf[ship.x - 1][j] === 'SHIP_NOT_SHOTED') {
-        //             return false
-        //         }
-        //     }
-        // }
-        // if (my_bf[ship.x + 1][ship.y]) {
-        //     for (let j = start_y; j <= stop_y; j++) {
-        //         if (my_bf[ship.x + 1][j] === 'SHIP_NOT_SHOTED') {
-        //             return false
-        //         }
-        //     }
-        // }
-    }
-    return true
+function get_cell(col, row) {
+    return my_field.getElementsByTagName('tr')[row].getElementsByTagName('td')[col]
 }
 
 function draw(newShip, my_bf) {
-    console.log(can_be_placed(newShip, my_bf))
     let flag = can_be_placed(newShip, my_bf)
     if (!newShip.is_rotated) {
         for (let i = 0; i < newShip.length; i++) {
+
             if (!flag) {
-                if ((newShip.x + i < 10)) {
+                if (newShip.x + i < 10) {
                     get_cell(newShip.x + i, newShip.y).style.backgroundColor = 'darkred'
                 }
-
             } else {
                 get_cell(newShip.x + i, newShip.y).style.backgroundColor = 'lightgoldenrodyellow'
             }
+
         }
 
     } else {
         for (let i = 0; i < newShip.length; i++) {
+
             if (!flag) {
                 if (newShip.y + i < 10) {
                     get_cell(newShip.x, newShip.y + i).style.backgroundColor = 'darkred'
                 }
-
             } else {
                 get_cell(newShip.x, newShip.y + i).style.backgroundColor = 'lightgoldenrodyellow'
             }
+
         }
     }
 }
@@ -209,9 +217,6 @@ function redraw(newShip) {
     }
 }
 
-function get_cell(col, row) {
-    return my_field.getElementsByTagName('tr')[row].getElementsByTagName('td')[col]
-}
 
 function Ship(length) {
     this.length = length
