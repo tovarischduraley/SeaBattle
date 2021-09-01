@@ -64,7 +64,6 @@ function can_be_placed(ship, my_bf) {
                 return false
             }
         }
-        console.log(my_bf[ship.y][ship.x - 1])
         if (my_bf[ship.y][ship.x - 1]) {
             for (let j = start_y; j <= stop_y; j++) {
                 if (my_bf[j][ship.x - 1] === 'SHIP_NOT_SHOTED') {

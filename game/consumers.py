@@ -126,7 +126,6 @@ class GameConsumer(WebsocketConsumer):
             message = "Wait for your opponent's filled field"
             self.info_message(player, message)
         else:
-            print('reconnect your turn')
             self.say_whos_turn(player, opponent, game.state)
             if player == game.state.whos_turn:
                 self.start_game(player)
@@ -244,13 +243,7 @@ class GameConsumer(WebsocketConsumer):
         new_bf.load(name)
 
         new_field = new_bf.field
-        for row in new_field:
-            for col in row:
-                if col == "SHIP_NOT_SHOTED":
-                    print(1, end=' ')
-                else:
-                    print(0, end=' ')
-            print()
+
 
         new_ships = new_bf.ships
         bf.load(opponent_name)
@@ -296,7 +289,6 @@ class GameConsumer(WebsocketConsumer):
             self.info_message(player, message)
 
     def start_game(self, player):
-        print('start game')
         async_to_sync(self.channel_layer.send)(
             player.channel_name,
             {
@@ -309,7 +301,6 @@ class GameConsumer(WebsocketConsumer):
         )
 
     def info_message(self, player, message):
-        print('info_message')
         async_to_sync(self.channel_layer.send)(
             player.channel_name,
             {
@@ -328,6 +319,7 @@ class GameConsumer(WebsocketConsumer):
         else:
             return state.bf1_owner
 
+    # REWORK NEEDED
     # def check_if_dead(self, bf, i, j):
     #     pass
     #
@@ -411,7 +403,6 @@ class GameConsumer(WebsocketConsumer):
             self.start_game(player.game.state.whos_turn)
 
     def switch_turn(self, data):
-        print('switch turn')
         player = Player.objects.filter(user=self.scope['user']).first()
         opponent = self.get_opponent(player)
         state = opponent.game.state
