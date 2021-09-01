@@ -1,32 +1,45 @@
-body{
+body {
     font-family: sans-serif;
 }
+
 .container {
+    margin: 0 auto;
     width: 100%;
     height: 100%;
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
 }
-.fields{
+
+.fields {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     margin: 20px 0px;
 }
 
 #game__area {
+    align-items: center;
     display: block;
-    height: 1000px;
+    height: 1050px;
     width: 1000px;
     background-color: #0f131c;
     margin-right: 20px;
 }
 
-.field{
+.field {
     height: 400px;
     width: 400px;
     margin: 0px 20px;
     background-color: cornsilk;
     border: 1px black solid;
+}
+
+.ship_dir {
+    margin-top: 10px;
+    text-align: center;
+    width: 100%;
+    color: white;
+    font-size: 25px;
+    font-weight: 500;
 }
 
 .cell {
@@ -35,21 +48,24 @@ body{
     background-color: cadetblue;
 }
 
-.empty__shoted{
+.empty__shoted {
     background-color: gray;
 }
 
-.ship__not__shoted{
+.ship__not__shoted {
     background-color: lightgoldenrodyellow;
 }
-.ship__shoted{
+
+.ship__shoted {
     background-color: darkred;
 }
-.ship__dead{
+
+.ship__dead {
     background-color: black;
 }
 
-.info{
+.info {
+    justify-content: space-around;
     width: 960px;
     height: 540px;
     display: flex;
@@ -57,7 +73,7 @@ body{
     background-color: #f9f6f5;
 }
 
-.ships{
+.ships {
     display: block;
     width: 400px;
     height: 400px;
@@ -66,11 +82,11 @@ body{
     box-sizing: border-box;
 }
 
-.ship{
+.ship {
     margin: 10px;
 }
 
-#messages{
+#messages {
     text-overflow: clip;
     font-weight: 500;
     font-size: 25px;

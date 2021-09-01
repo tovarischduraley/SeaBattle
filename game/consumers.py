@@ -244,7 +244,6 @@ class GameConsumer(WebsocketConsumer):
 
         new_field = new_bf.field
 
-
         new_ships = new_bf.ships
         bf.load(opponent_name)
         opponent_field = bf.field
@@ -319,20 +318,84 @@ class GameConsumer(WebsocketConsumer):
         else:
             return state.bf1_owner
 
-    # REWORK NEEDED
-    # def check_if_dead(self, bf, i, j):
-    #     pass
-    #
-    # def look_for_dead_ships(self, bf):
-    #     for i in range(10):
-    #         for j in range(10):
-    #             if bf[i][j] == 'SHIP_SHOTED':
-    #                 if bf[i + 1][j]:
-    #                     if bf[i + 1][j] == 'SHIP_SHOTED':
-    #                         self.check_if_dead(bf, i + 1, j)
-    #                 if bf[i][j + 1]:
-    #                     if bf[i][j + 1] == 'SHIP_SHOTED':
-    #                         self.check_if_dead(bf, i, j + 1)
+    # ENTRY POINT SH
+    def check_cell_state(self, cell):
+        if cell == 'SHIP_SHOTED':
+            return False
+        if cell == 'SHIP_NOT_SHOTED':
+            return False
+        if cell == 'EMPTY_NOT_SHOTED':
+            return True
+        if cell == 'EMPTY_NOT_SHOTED':
+            return True
+
+    def color_black(self, bf, x, y):
+        bf[x][y] = 'SHIP_DEAD'
+        if x + 1 < 10 and bf[x + 1][y] == 'SHIP_SHOTED':
+            self.color_black(bf, x + 1, y)
+        if x - 1 > -1 and bf[x - 1][y] == 'SHIP_SHOTED':
+            self.color_black(bf, x - 1, y)
+        if y + 1 < 10 and bf[x][y + 1] == 'SHIP_SHOTED':
+            self.color_black(bf, x, y + 1)
+        if y - 1 > -1 and bf[x][y - 1] == 'SHIP_SHOTED':
+            self.color_black(bf, x, y - 1)
+
+    def check_if_dead(self, bf, x, y):
+        bools = [False, False, False, False]
+
+        # RIGHT
+        bools[0] = self.check(bf, 'RIGHT', x, y)
+        # LEFT
+        bools[1] = self.check(bf, 'LEFT', x, y)
+        # BOTTOM
+        bools[2] = self.check(bf, 'BOTTOM', x, y)
+        # TOP
+        bools[3] = self.check(bf, 'TOP', x, y)
+
+        if bools == [True, True, True, True]:
+            self.color_black(bf, x, y)
+            return bf
+
+    def check(self, bf, direction, x, y):
+        if direction == "RIGHT":
+            x = x + 1
+            if x < 10:
+                if self.check_cell_state(bf[x][y]):
+                    return True
+                else:
+                    self.check(bf, direction, x, y)
+            else:
+                return True
+
+        if direction == "LEFT":
+            x = x - 1
+            if x > -1:
+                if self.check_cell_state(bf[x][y]):
+                    return True
+                else:
+                    self.check(bf, direction, x, y)
+            else:
+                return True
+
+        if direction == "BOTTOM":
+            y = y + 1
+            if y < 10:
+                if self.check_cell_state(bf[x][y]):
+                    return True
+                else:
+                    self.check(bf, direction, x, y)
+            else:
+                return True
+
+        if direction == "TOP":
+            y = y - 1
+            if y > -1:
+                if self.check_cell_state(bf[x][y]):
+                    return True
+                else:
+                    self.check(bf, direction, x, y)
+            else:
+                return True
 
     def shot(self, data):
         player = Player.objects.filter(user=self.scope['user']).first()
