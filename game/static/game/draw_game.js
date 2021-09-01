@@ -21,100 +21,195 @@ function draw_ships(not_placed_ships, my_bf) {
                 let newShip = new Ship(this.length)
 
                 $('.my_bf').off('click').on('click', function () {
+                    newShip.y = $(this).closest('tr').index();
+                    newShip.x = $(this).index()
 
-                    document.onkeypress = function () {}
+                    let cell = get_cell(newShip.x, newShip.y)
 
-                    newShip.x = $(this).closest('tr').index();
-                    newShip.y = $(this).index()
-                    if (!newShip.is_rotated) {
-                        for (let i = 0; i < newShip.length; i++) {
-                            my_bf[newShip.x][newShip.y + i] = 'SHIP_NOT_SHOTED'
+                    if (cell.style.backgroundColor !== 'darkred') {
+                        document.onkeypress = function () {
                         }
-                    } else {
-                        for (let i = 0; i < newShip.length; i++) {
-                            my_bf[newShip.x + i][newShip.y] = 'SHIP_NOT_SHOTED'
-                        }
-                    }
-                    ws.send(JSON.stringify({
-                        "commands": ["place_ship"],
-                        "message":
-                            {
-                                "my_bf": my_bf,
-                                "placed_ship_len": newShip.length
+
+                        if (!newShip.is_rotated) {
+                            for (let i = 0; i < newShip.length; i++) {
+                                my_bf[newShip.y + i][newShip.x] = 'SHIP_NOT_SHOTED'
                             }
-                    }))
-
+                        } else {
+                            for (let i = 0; i < newShip.length; i++) {
+                                my_bf[newShip.y][newShip.x + i] = 'SHIP_NOT_SHOTED'
+                            }
+                        }
+                        ws.send(JSON.stringify({
+                            "commands": ["place_ship"],
+                            "message":
+                                {
+                                    "my_bf": my_bf,
+                                    "placed_ship_len": newShip.length
+                                }
+                        }))
+                    }
                 })
 
                 $('.my_bf').off('mouseover').on('mouseover', function () {
                     newShip.y = $(this).closest('tr').index();
                     newShip.x = $(this).index()
-                    draw(newShip)
+                    draw(newShip, my_bf)
+                    $(function () {
+
+                        document.onkeypress = function (event) {
+                            event.preventDefault();
+                            if (event.code === 'KeyR') {
+                                redraw(newShip)
+                                newShip.is_rotated = !newShip.is_rotated
+                                draw(newShip, my_bf)
+                            }
+                        }
+                    })
                 });
 
                 $('.my_bf').off('mouseout').on('mouseout', function () {
                     newShip.y = $(this).closest('tr').index();
                     newShip.x = $(this).index()
                     redraw(newShip)
+                    document.onkeypress = function (event) {
+                        event.preventDefault();
+                    }
                 })
 
-                document.onkeypress = function (event) {
-                    event.preventDefault();
-                    if (event.code === 'KeyR') {
-                        redraw(newShip)
-                        newShip.is_rotated = !newShip.is_rotated
-                        draw(newShip)
-                    }
-                }
             }
         }
     }
 }
 
 function can_be_placed(ship, my_bf) {
+    if (!ship.is_rotated) {
+        let start_x = ship.x
+        let stop_x = ship.x + ship.length - 1
 
+        console.log('start_x ', start_x, 'stop_x ', stop_x)
+
+        if (ship.x + ship.length - 1 > 9) {
+            return false
+        }
+
+
+        if (start_x > 0) {
+            start_x--
+            console.log('new_start_x ', start_x, 'new_stop_x ', stop_x)
+            if (my_bf[start_x][ship.y] === 'SHIP_NOT_SHOTED') {
+                return false
+            }
+        }
+        if (stop_x < 9) {
+            stop_x++
+            console.log('new_start_x ', start_x, 'new_stop_x ', stop_x)
+            if (my_bf[stop_x][ship.y] === 'SHIP_NOT_SHOTED') {
+                return false
+            }
+        }
+
+        // if (my_bf[ship.x][ship.y - 1]) {
+        //     for (let i = start_x; i <= stop_x; i++) {
+        //         if (my_bf[i][ship.y - 1] === 'SHIP_NOT_SHOTED') {
+        //             return false
+        //         }
+        //     }
+        // }
+        // if (my_bf[ship.x][ship.y + 1]) {
+        //     for (let i = start_x; i <= stop_x; i++) {
+        //         if (my_bf[i][ship.y + 1] === 'SHIP_NOT_SHOTED') {
+        //             return false
+        //         }
+        //     }
+        // }
+    } else {
+        if (ship.y + ship.length - 1 > 9) {
+            return false
+        }
+
+        let start_y = ship.y
+        let stop_y = ship.y + ship.length - 1
+
+        console.log('start_y ', start_y, ' stop_y ', stop_y)
+
+        if (start_y > 0) {
+            start_y--
+            console.log('new_start_y ', start_y, ' new_stop_y ', stop_y)
+            if (my_bf[ship.x][start_y] === 'SHIP_NOT_SHOTED') {
+                return false
+            }
+        }
+        if (stop_y < 9) {
+            stop_y++
+            console.log('new_start_y ', start_y, ' new_stop_y ', stop_y)
+
+            if (my_bf[ship.x][stop_y] === 'SHIP_NOT_SHOTED') {
+                return false
+            }
+        }
+
+        // if (my_bf[ship.x - 1][ship.y]) {
+        //     for (let j = start_y; j <= stop_y; j++) {
+        //         if (my_bf[ship.x - 1][j] === 'SHIP_NOT_SHOTED') {
+        //             return false
+        //         }
+        //     }
+        // }
+        // if (my_bf[ship.x + 1][ship.y]) {
+        //     for (let j = start_y; j <= stop_y; j++) {
+        //         if (my_bf[ship.x + 1][j] === 'SHIP_NOT_SHOTED') {
+        //             return false
+        //         }
+        //     }
+        // }
+    }
+    return true
 }
 
-function draw(newShip) {
-    if (newShip.is_rotated) {
+function draw(newShip, my_bf) {
+    console.log(can_be_placed(newShip, my_bf))
+    let flag = can_be_placed(newShip, my_bf)
+    if (!newShip.is_rotated) {
         for (let i = 0; i < newShip.length; i++) {
-            if (newShip.y + newShip.length - 1 > 9) {
-                if (newShip.y + i < 10) {
-                    get_cell(newShip.y + i, newShip.x).style.backgroundColor = 'darkred'
+            if (!flag) {
+                if ((newShip.x + i < 10)) {
+                    get_cell(newShip.x + i, newShip.y).style.backgroundColor = 'darkred'
                 }
+
             } else {
-                get_cell(newShip.y + i, newShip.x).style.backgroundColor = 'lightgoldenrodyellow'
+                get_cell(newShip.x + i, newShip.y).style.backgroundColor = 'lightgoldenrodyellow'
             }
         }
 
     } else {
         for (let i = 0; i < newShip.length; i++) {
-            if (newShip.x + newShip.length - 1 > 9) {
-                if (newShip.x + i < 10) {
-                    get_cell(newShip.y, newShip.x + i).style.backgroundColor = 'darkred'
+            if (!flag) {
+                if (newShip.y + i < 10) {
+                    get_cell(newShip.x, newShip.y + i).style.backgroundColor = 'darkred'
                 }
+
             } else {
-                get_cell(newShip.y, newShip.x + i).style.backgroundColor = 'lightgoldenrodyellow'
+                get_cell(newShip.x, newShip.y + i).style.backgroundColor = 'lightgoldenrodyellow'
             }
         }
     }
 }
 
 function redraw(newShip) {
-    if (newShip.is_rotated) {
+    if (!newShip.is_rotated) {
         for (let i = 0; i < newShip.length; i++) {
-            if (newShip.y + i > 9) break;
-            get_cell(newShip.y + i, newShip.x).style.backgroundColor = ''
+            if (newShip.x + i > 9) break;
+            get_cell(newShip.x + i, newShip.y).style.backgroundColor = ''
         }
     } else {
         for (let i = 0; i < newShip.length; i++) {
-            if (newShip.x + i > 9) break;
-            get_cell(newShip.y, newShip.x + i).style.backgroundColor = ''
+            if (newShip.y + i > 9) break;
+            get_cell(newShip.x, newShip.y + i).style.backgroundColor = ''
         }
     }
 }
 
-function get_cell(row, col) {
+function get_cell(col, row) {
     return my_field.getElementsByTagName('tr')[row].getElementsByTagName('td')[col]
 }
 
