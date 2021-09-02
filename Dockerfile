@@ -13,3 +13,5 @@ RUN pip install -r requirements.txt
 
 COPY . /SeaBattle/
 
+ENTRYPOINT ["/SeaBattle/entrypoint.sh"]
+
