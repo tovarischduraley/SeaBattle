@@ -107,6 +107,7 @@
 
             case 'end_game':
                 alert("Game ended")
+                break;
         }
     }
 
@@ -127,7 +128,8 @@
                     case 'EMPTY_NOT_SHOTED':
                         field[y][x] = 'EMPTY_SHOTED';
                         switch_turn()
-                        shot(field)
+                        console.log()
+                        shot(field, null, null)
                         this.click = function () {
                         }
                         this.mouseover = function () {
@@ -137,17 +139,19 @@
                         break;
                     case 'SHIP_NOT_SHOTED':
                         field[y][x] = 'SHIP_SHOTED';
-                        shot(field)
+                        shot(field, x, y)
                         break;
                 }
             })
         })
     }
 
-    function shot(op_bf) {
+    function shot(op_bf, x, y) {
         ws.send(JSON.stringify({
             "commands": ["shot"],
             "op_bf": op_bf,
+            "shot_x": x,
+            "shot_y": y
 
         }))
     }
@@ -179,7 +183,6 @@
         }));
         messageInputDom.value = '';
     };
-
 
     var script = document.createElement('script');
     script.src = 'https://code.jquery.com/jquery-3.4.1.min.js';

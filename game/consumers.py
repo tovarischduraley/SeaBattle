@@ -319,83 +319,55 @@ class GameConsumer(WebsocketConsumer):
             return state.bf1_owner
 
     # ENTRY POINT SH
-    def check_cell_state(self, cell):
-        if cell == 'SHIP_SHOTED':
-            return False
-        if cell == 'SHIP_NOT_SHOTED':
-            return False
-        if cell == 'EMPTY_NOT_SHOTED':
-            return True
-        if cell == 'EMPTY_NOT_SHOTED':
-            return True
+    def is_dead(self, bf, y, x):
+        direction = {
+            'bottom': [[1, 0], False, -1],
+            'top': [[-1, 0], False, -1],
+            'right': [[0, 1], False, -1],
+            'left': [[0, -1], False, -1],
+        }
 
-    def color_black(self, bf, x, y):
-        bf[x][y] = 'SHIP_DEAD'
-        if x + 1 < 10 and bf[x + 1][y] == 'SHIP_SHOTED':
-            self.color_black(bf, x + 1, y)
-        if x - 1 > -1 and bf[x - 1][y] == 'SHIP_SHOTED':
-            self.color_black(bf, x - 1, y)
-        if y + 1 < 10 and bf[x][y + 1] == 'SHIP_SHOTED':
-            self.color_black(bf, x, y + 1)
-        if y - 1 > -1 and bf[x][y - 1] == 'SHIP_SHOTED':
-            self.color_black(bf, x, y - 1)
+        for dir in direction.keys():
+            temp_x = x
+            temp_y = y
+            counter = 0
 
-    def check_if_dead(self, bf, x, y):
-        bools = [False, False, False, False]
+            while True:
+                if bf[temp_x][temp_y] == 'SHIP_SHOTED':
+                    counter += 1
+                    temp_x += direction[dir][0][0]
+                    if temp_x < 0 or temp_x > 9:
+                        direction[dir][1] = True
+                        break
+                    temp_y += direction[dir][0][1]
+                    if temp_y < 0 or temp_y > 9:
+                        direction[dir][1] = True
+                        break
 
-        # RIGHT
-        bools[0] = self.check(bf, 'RIGHT', x, y)
-        # LEFT
-        bools[1] = self.check(bf, 'LEFT', x, y)
-        # BOTTOM
-        bools[2] = self.check(bf, 'BOTTOM', x, y)
-        # TOP
-        bools[3] = self.check(bf, 'TOP', x, y)
+                    if bf[temp_x][temp_y] == 'SHIP_NOT_SHOTED':
+                        direction[dir][1] = False
+                        break
 
-        if bools == [True, True, True, True]:
-            self.color_black(bf, x, y)
-            return bf
+                    if bf[temp_x][temp_y] == 'EMPTY_NOT_SHOTED' or bf[temp_x][temp_y] == 'EMPTY_SHOTED':
+                        direction[dir][1] = True
+                        break
 
-    def check(self, bf, direction, x, y):
-        if direction == "RIGHT":
-            x = x + 1
-            if x < 10:
-                if self.check_cell_state(bf[x][y]):
-                    return True
-                else:
-                    self.check(bf, direction, x, y)
-            else:
-                return True
+            direction[dir][2] += counter
 
-        if direction == "LEFT":
-            x = x - 1
-            if x > -1:
-                if self.check_cell_state(bf[x][y]):
-                    return True
-                else:
-                    self.check(bf, direction, x, y)
-            else:
-                return True
+        arr = []
+        for dir in direction.keys():
+            arr.append(direction[dir][1])
+        if arr == [True, True, True, True]:
+            bf[x][y] = 'SHIP_DEAD'
+            for dir in direction.keys():
+                temp_x = x
+                temp_y = y
+                len = direction[dir][2]
+                for i in range(len):
+                    temp_x += direction[dir][0][0]
+                    temp_y += direction[dir][0][1]
+                    bf[temp_x][temp_y] = 'SHIP_DEAD'
 
-        if direction == "BOTTOM":
-            y = y + 1
-            if y < 10:
-                if self.check_cell_state(bf[x][y]):
-                    return True
-                else:
-                    self.check(bf, direction, x, y)
-            else:
-                return True
-
-        if direction == "TOP":
-            y = y - 1
-            if y > -1:
-                if self.check_cell_state(bf[x][y]):
-                    return True
-                else:
-                    self.check(bf, direction, x, y)
-            else:
-                return True
 
     def shot(self, data):
         player = Player.objects.filter(user=self.scope['user']).first()
@@ -405,6 +377,11 @@ class GameConsumer(WebsocketConsumer):
         default_cells_count = 0
         for i in range(len(default_ships)):
             default_cells_count += default_ships[i] * (i + 1)
+
+        shot_x = data['shot_x']
+        shot_y = data['shot_y']
+        if shot_x != None:
+            self.is_dead(data['op_bf'], shot_x, shot_y)
 
         if opponent == opponent.game.state.bf1_owner:
             bf.load(opponent.game.state.bf1)
@@ -418,7 +395,7 @@ class GameConsumer(WebsocketConsumer):
         ships_shoted = 0
         for row in bf.field:
             for cell in row:
-                if cell == "SHIP_SHOTED":
+                if cell == "SHIP_DEAD":
                     ships_shoted += 1
 
         async_to_sync(self.channel_layer.send)(
