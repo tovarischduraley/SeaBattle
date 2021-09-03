@@ -4,6 +4,7 @@ ENV PYTHONBUFFERED 1
 RUN apt-get update && apt-get upgrade -y && apt-get autoremove && apt-get autoclean
 
 RUN mkdir -p /SeaBattle
+RUN mkdir -p /SeaBattle/bf_dumps
 
 WORKDIR /SeaBattle
 
